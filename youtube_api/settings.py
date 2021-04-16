@@ -27,6 +27,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+#celery broker
+CELERY_BROKER_URL = 'redis://localhost:6379'
 
 # Application definition
 
