@@ -3,9 +3,13 @@ from celery.utils.log import get_task_logger
 
 from django.conf import settings
 from googleapiclient.discovery import build
-from googleapiclient.error import HttpError
+from googleapiclient.errors import HttpError
 
+from datetime import datetime, timedelta
+import redis
 from .models import VideoModel
+from apikey.models import ApiKeyModel
+
 
 logger = get_task_logger(__name__)
 
@@ -15,7 +19,7 @@ def youtube(query, max_results, next_token, api_key, published_after):
     """
 
     youtube_object = build(settings.YOUTUBE_API_SERVICE_NAME, settings.YOUTUBE_API_VERSION,
-                        developerKey=api_key)
+                        developerKey=api_key,  cache_discovery=False)
 
     try:
         response = youtube_object.search().list(q = query, type ='video',
@@ -48,5 +52,83 @@ def saveVideo(videos):
                             title = v['snippet']['title'],
                             desc = v['snippet']['description'],
                             published_date=v['snippet']['publishedAt'],
-                            thumbnail_url= v['snippet']['thumbnails'],['default'],['url']
-                            )    
+                            thumbnail_url= v['snippet']['thumbnails']['default']['url'])
+        new_video.save()
+
+@shared_task()
+def fetchVideo():
+    """
+    Task/function which will run every _5_ minutes, get data from youtube and save in the database
+    """ 
+    print("task started -- part 1")   
+    r = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+
+    
+    published_after = datetime.utcnow() - timedelta(minutes=5)
+
+    max_results = 50
+    next_token = None
+
+    print("Checkpoint 2")   
+    # fetching all API keys from the database
+    api_keys = ApiKeyModel.objects.all()
+
+    # if no api keys are present exit
+    if not api_keys.exists():
+        logger.error("No API Key present in the database")
+        return
+
+    print("Checkpoint 3")
+    # checking if the value exists in redis, else set it
+    if not r.exists('current_api_key_no'):
+        r.set('current_api_key_no', str(0))
+
+    current_api_key = api_keys[int(r.get('current_api_key_no'))].key
+
+    videos = VideoModel.objects.all().order_by('-published_date')
+
+    # if there are videos in database,
+    # then service will fetch videos after that time
+    if videos.exists():
+        published_after = videos.first().published_date.replace(tzinfo=None)
+
+    published_after_str = published_after.isoformat("T") + "Z"
+    print("Checkpoint 4")
+    # Iterate through all the pages of the Youtube API and save videos in db
+    while True:
+        try:
+            results = youtube(
+                query =  'football',
+                max_results= max_results,
+                next_token= next_token,
+                api_key =current_api_key,
+                published_after= published_after_str
+            )
+            print("Checkpoint 5")
+            if len(results['items']) == 0:
+                return
+
+            # see if we have nextToken
+            if results['nextPageToken'] :    
+                next_token = results['nextPageToken']
+                print(next_token)
+                
+            else:
+                break
+
+            # save the results into the database
+            saveVideo(results)
+            print("Checkpoint 6")
+
+        except HttpError as e:
+            if e.resp['status'] == '403':
+                logger.warning('Current API key expired, try next API key')
+                # try next api key0
+                total_keys = api_keys.count()
+                current_api_key_no = int(r.get('current_api_key_no'))
+                r.set('current_api_key_no',
+                      str((current_api_key_no + 1) % total_keys))
+                current_api_key = api_keys[current_api_key_no + 1].key
+                return
+            # if any other error
+            logger.error('Unknown Error Occurred')

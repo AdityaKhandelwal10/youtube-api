@@ -27,8 +27,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
-#celery broker
-CELERY_BROKER_URL = 'redis://localhost:6379'
+
 
 # Application definition
 
@@ -42,6 +41,7 @@ INSTALLED_APPS = [
     #my apps
     'video',
     'apikey',
+    'rest_framework',
 
 ]
 
@@ -85,6 +85,13 @@ DATABASES = {
         'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
     }
 }
+
+#celery broker
+CELERY_BROKER_URL = 'redis://localhost:6379'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379'
+CELERY_ACCEPT_CONTENT = ['application/json']
+CELERY_RESULT_SERIALZER = 'json'
+CELERY_TASK_SERIALZER = 'json'
 
 
 # Password validation
