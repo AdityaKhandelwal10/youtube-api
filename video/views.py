@@ -25,6 +25,8 @@ class YoutubeData(APIView):
             data = list(page_obj)
             if page.has_next():
                 nextpage = page.next_page_number()
+            else:
+                nextpage = None
             if page.has_previous():
                 prevpage = page.previous_page_number()
             else:
@@ -34,3 +36,43 @@ class YoutubeData(APIView):
             return Response({"Next Page": nextpage,"Previous Page": prevpage,"data" : data})
         else :
             return Response({"Empty" : "No results found"})
+
+    def post(self, request):
+        
+        try:
+            search_parameter = request.data.get('search')
+       
+        
+                
+            videos = VideoModel.objects.filter(Q(title__icontains = search_parameter) or Q(desc__icontains = search_parameter))
+            if videos:
+                page_size = 5
+                page_number = self.request.GET.get('page', 1)
+                paginator = Paginator(videos.values() , page_size)
+                page_obj = paginator.get_page(page_number)
+
+
+                try:
+                    page = paginator.page(page_number)
+                except EmptyPage:
+                    return JsonResponse({"details": "Page out of range"}, status=404)
+
+                data = list(page_obj)
+
+                if page.has_next():
+                    nextpage = page.next_page_number()
+                else:
+                    nextpage = None
+                if page.has_previous():
+                    prevpage = page.previous_page_number()
+                else:
+                    prevpage = None
+
+                        # return JsonResponse({"Next Page": nextpage,"Previous Page": prevpage,"data" : data})
+                return Response({"Next Page": nextpage,"Previous Page": prevpage,"data" : data})
+                
+            else :
+                return Response({"Empty" : "No results found"})
+
+        except  Exception as e:
+            return Response({'Error' : str(e)})
