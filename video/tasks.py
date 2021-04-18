@@ -32,7 +32,7 @@ def youtube(query, max_results, next_token, api_key, published_after):
         return request
 
     except HttpError as e:
-        raise e
+        print(e)
 
 
 def saveVideo(videos):
@@ -61,7 +61,7 @@ def fetchVideo():
     Task/function which will run every _5_ minutes, get data from youtube and save in the database
     """ 
     print("task started -- part 1")   
-    r = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+    r = redis.Redis(host='localhost', port=6379, db=1, decode_responses=True)
 
     
     published_after = datetime.utcnow() - timedelta(minutes=5)
@@ -79,11 +79,19 @@ def fetchVideo():
         return
 
     print("Checkpoint 3")
+    
     # checking if the value exists in redis, else set it
-    if not r.exists('current_api_key_no'):
-        r.set('current_api_key_no', str(0))
+    
+    #trying new cache code here
+    if r.exists('apikey_id') == 0:
+        apikey_id = api_keys.first().id
+        r.set('apikey_id', apikey_id)
 
-    current_api_key = api_keys[int(r.get('current_api_key_no'))].key
+    # if not r.exists('current_api_key_no'):
+    #     r.set('current_api_key_no', str(1))
+    a = int(r.get('apikey_id'))
+    current_api_key = ApiKeyModel.objects.get(id = a).key
+    # current_api_key = api_keys[int(r.get('current_api_key_no'))].key
 
     videos = VideoModel.objects.all().order_by('-published_date')
 
@@ -92,8 +100,11 @@ def fetchVideo():
     if videos.exists():
         published_after = videos.first().published_date.replace(tzinfo=None)
 
+        print(f'checkpoint {published_after}')
+
     published_after_str = published_after.isoformat("T") + "Z"
-    print("Checkpoint 4")
+    print(f"Checkpoint 4 {current_api_key}")
+    
     # Iterate through all the pages of the Youtube API and save videos in db
     while True:
         try:
@@ -102,14 +113,14 @@ def fetchVideo():
                 max_results= max_results,
                 next_token= next_token,
                 api_key =current_api_key,
-                published_after= published_after_str
+                published_after= published_after_str,
             )
-            print("Checkpoint 5")
+            
             if len(results['items']) == 0:
                 return
 
             # see if we have nextToken
-            if results['nextPageToken'] :    
+            if 'nextPageToken' in results:
                 next_token = results['nextPageToken']
                 print(next_token)
                 
@@ -121,14 +132,24 @@ def fetchVideo():
             print("Checkpoint 6")
 
         except HttpError as e:
-            if e.resp['status'] == '403':
-                logger.warning('Current API key expired, try next API key')
-                # try next api key0
-                total_keys = api_keys.count()
-                current_api_key_no = int(r.get('current_api_key_no'))
-                r.set('current_api_key_no',
-                      str((current_api_key_no + 1) % total_keys))
-                current_api_key = api_keys[current_api_key_no + 1].key
-                return
-            # if any other error
-            logger.error('Unknown Error Occurred')
+            if e.code == 403:
+                logger.warning('The API key has exceeded its quota, try next APIKey')
+
+                a = int(r.get('apikey_id'))
+                lastid = api_keys.last().id
+                if a<lastid:
+                    a= a+1
+                    current_api_key = ApiKeyModel.objects.get(id = a).key
+                    fetchVideo()    
+                    
+                
+                else:
+                    logger.warning('No more API keys in the database, please add some')
+
+            logger.error('Unknown error occured')
+        
+        
+        
+        
+        
+        
