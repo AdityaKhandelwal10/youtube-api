@@ -54,17 +54,18 @@ An Application using the Youtube v3 API to fetch latest videos sorted in reverse
 2. For Testing the API, Postman was used: 
   * `GET` Request:
   Open a new request and enter the url `127.0.0:8000/videos/` with request option set as __GET__ as shown in the image below.
+  
   <img src =https://github.com/AdityaKhandelwal10/youtube-api/blob/main/assets/ss5.png width="75%"> <figcaption>GET Request in Postman</figcaption>
   
   * `POST` Request:
   Open a new request and enter the url `127.0.0:8000/videos/` with request option set as __POST__ as shown in the image below.
   The body option below sends a query to the API. 
   In the body section, select form-data and enter the query you want to search the database for. As shown in the images below.
-  <img src =https://github.com/AdityaKhandelwal10/youtube-api/blob/main/assets/ss6.png width="75%"> <figcaption></figcaption>
   
+  <img src =https://github.com/AdityaKhandelwal10/youtube-api/blob/main/assets/ss6.png width="75%"> 
   <img src =https://github.com/AdityaKhandelwal10/youtube-api/blob/main/assets/ss7.png width="75%"> <figcaption>POST Request in Postman</figcaption>
   
- 3. For a paginated response please add `?page=<no>` to the url like `127.0.0:8000/videos/?page=5`
+  * For a paginated response please add `?page=<no>` to the url like `127.0.0:8000/videos/?page=5`
  
 ## Limitations:
 1. API keys needs to be added manually.
