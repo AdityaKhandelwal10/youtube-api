@@ -11,8 +11,9 @@ An Application using the Youtube v3 API to fetch latest videos sorted in reverse
 4. A dashboard to view the stored videos and API keys with filters. 
 
 ## Description:
-  * This Django application is used to fetch videos in the background, it accomplishes that by using __Celery__ to perfrom Async task in the background with __Redis__ as a message broker. Celery uses a seperate server, we need to run the workers and beat-scheduler in the background for the asyn process to happen periodically. 
-  * The data stored in the database is retrieved using a django rest framework __APIView__ (instead of a generic ListView of DRF) because it gives more flexibilty and helps understand the code and make it optimised later.
+  * This Django application is used to fetch videos in the background, it accomplishes that by using __Celery__ to perfrom Async task in the background with __Redis__ as a message broker. 
+  * Celery uses a seperate server, we need to run the workers and beat-scheduler in the background for the asyn process to happen periodically. 
+  * The data stored in the database is retrieved using a django rest framework __APIView__ (instead of a generic ListView of DRF).
   * API keys are to be added using the admin dashboard, to support multiple api keys Redis has been used to manage passing of information. 
   * Pagination has been done using the __Paginator class__ of Django. Although serializers and pagination class can be used to achieve the same result. 
   * Both GET and POST methods are available at `http://127.0.0.1:8000/videos/`
@@ -40,4 +41,16 @@ An Application using the Youtube v3 API to fetch latest videos sorted in reverse
         
 9. Run the server using the command `python python manage.py runserver`
         
-
+### Testing the API:
+1. After running celery workers and beat scheduler, run the server. 
+2. For Testing the API, Postman was used: 
+  * `GET` Request:
+  Open a new request and enter the url `127.0.0:8000/videos/` with request option set as __GET__ as shown in the image below.
+  * `POST` Request:
+  Open a new request and enter the url `127.0.0:8000/videos/` with request option set as __POST__ as shown in the image below.
+  The body option below sends a query to the API. 
+  In the body section, select form-data and enter the query you want to search the database for. As shown in the images below. 
+  
+## Limitations:
+1. API keys needs to be added manually.
+2. Optimised query search structure not supported
