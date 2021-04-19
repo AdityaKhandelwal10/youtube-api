@@ -20,7 +20,7 @@ class YoutubeData(APIView):
         video_data = VideoModel.objects.all()
 
         if video_data:
-            page_size = 5
+            page_size = 50
             page_number = self.request.GET.get('page', 1)
             paginator = Paginator(video_data.values() , page_size)
             page_obj = paginator.get_page(page_number)

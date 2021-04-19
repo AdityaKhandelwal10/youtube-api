@@ -8,4 +8,6 @@ class ApiKeyModel(models.Model):
 
     class Meta:
         verbose_name_plural = "APIKeys"
-        
+
+    def __str__(self):
+        return "API Key - " + str(self.id)+ " - " +self.key

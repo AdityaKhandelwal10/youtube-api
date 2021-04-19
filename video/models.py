@@ -14,4 +14,4 @@ class VideoModel(models.Model):
         verbose_name_plural= 'Videos'
     
     def __str__(self):
-        return self.title
+        return str(self.id) +" - "+  self.title
