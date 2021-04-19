@@ -13,6 +13,7 @@ from apikey.models import ApiKeyModel
 
 logger = get_task_logger(__name__)
 
+
 def youtube(query, max_results, next_token, api_key, published_after):
     """
     This function creates a youtube api object and gets the data for us
@@ -37,7 +38,7 @@ def youtube(query, max_results, next_token, api_key, published_after):
 
 def saveVideo(videos):
     """
-    The data which we got from the API is stored
+    The data which we got from the API is stored in the VideoModel database
     """
     for v in videos['items']:
 
@@ -55,55 +56,50 @@ def saveVideo(videos):
                             thumbnail_url= v['snippet']['thumbnails']['default']['url'])
         new_video.save()
 
+
 @shared_task()
 def fetchVideo():
     """
-    Task/function which will run every _5_ minutes, get data from youtube and save in the database
+    Task which is run periodically by celery beat scheduler to fetch and save video data
+    in the database using API keys present in the ApiKeyModel
     """ 
-    print("task started -- part 1")   
+    
     r = redis.Redis(host='localhost', port=6379, db=1, decode_responses=True)
 
     
-    published_after = datetime.utcnow() - timedelta(minutes=5)
+    published_after = datetime.utcnow() - timedelta(minutes=10)
 
     max_results = 50
     next_token = None
 
-    print("Checkpoint 2")   
+     
     # fetching all API keys from the database
     api_keys = ApiKeyModel.objects.all()
 
-    # if no api keys are present exit
+    # if no api keys are present, exit
     if not api_keys.exists():
         logger.error("No API Key present in the database")
         return
-
-    print("Checkpoint 3")
     
-    # checking if the value exists in redis, else set it
-    
-    #trying new cache code here
+    # check if the apikey_id is present in redis
     if r.exists('apikey_id') == 0:
         apikey_id = api_keys.first().id
         r.set('apikey_id', apikey_id)
 
-    # if not r.exists('current_api_key_no'):
-    #     r.set('current_api_key_no', str(1))
+    #get apikey_id from redis 
+
     a = int(r.get('apikey_id'))
     current_api_key = ApiKeyModel.objects.get(id = a).key
-    # current_api_key = api_keys[int(r.get('current_api_key_no'))].key
 
     videos = VideoModel.objects.all().order_by('-published_date')
 
     # if there are videos in database,
     # then service will fetch videos after that time
+
     if videos.exists():
         published_after = videos.first().published_date.replace(tzinfo=None)
 
-        print(f'checkpoint {published_after}')
-
     published_after_str = published_after.isoformat("T") + "Z"
-    print(f"Checkpoint 4 {current_api_key}")
     
     # Iterate through all the pages of the Youtube API and save videos in db
     while True:
@@ -129,17 +125,21 @@ def fetchVideo():
 
             # save the results into the database
             saveVideo(results)
-            print("Checkpoint 6")
 
+        #handling the error when API quota is exceeded 
         except HttpError as e:
             if e.code == 403:
                 logger.warning('The API key has exceeded its quota, try next APIKey')
 
+                #get apikey_id from redis
                 a = int(r.get('apikey_id'))
                 lastid = api_keys.last().id
+
+                #check if id number is valid
                 if a<lastid:
                     a= a+1
                     current_api_key = ApiKeyModel.objects.get(id = a).key
+                    #recursion here
                     fetchVideo()    
                     
                 
