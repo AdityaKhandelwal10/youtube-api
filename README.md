@@ -10,6 +10,10 @@ An Application using the Youtube v3 API to fetch latest videos sorted in reverse
 3. Support for supplying multiple API keys so that if quota is exhausted on one, it automatically uses the next available key.
 4. A dashboard to view the stored videos and API keys with filters. 
 
+<img src =https://github.com/AdityaKhandelwal10/youtube-api/blob/main/assets/ss1.png width="75%"><figcaption>Video Dashboard</figcaption>
+
+<img src =https://github.com/AdityaKhandelwal10/youtube-api/blob/main/assets/ss2.png width="75%"> <figcaption>API Response for GET Request</figcaption>
+
 ## Description:
   * This Django application is used to fetch videos in the background, it accomplishes that by using __Celery__ to perfrom Async task in the background with __Redis__ as a message broker. 
   * Celery uses a seperate server, we need to run the workers and beat-scheduler in the background for the asyn process to happen periodically. 
@@ -18,6 +22,10 @@ An Application using the Youtube v3 API to fetch latest videos sorted in reverse
   * Pagination has been done using the __Paginator class__ of Django. Although serializers and pagination class can be used to achieve the same result. 
   * Both GET and POST methods are available at `http://127.0.0.1:8000/videos/`
   * Application uses _Q()_ and _icontains_ for filtering.
+
+<img src =https://github.com/AdityaKhandelwal10/youtube-api/blob/main/assets/ss3.png width="75%"> <figcaption>APIKey Dashboard in Admin</figcaption>
+
+<img src =https://github.com/AdityaKhandelwal10/youtube-api/blob/main/assets/ss4.png width="75%"> <figcaption>Paginated response with `127.0.0:8000/videos/?page=5`</figcaption>
 
 ## Setup :
 ### Prerequisites:
@@ -36,21 +44,28 @@ An Application using the Youtube v3 API to fetch latest videos sorted in reverse
      * Login to the ___Admin dashboard___ with your credentials on the server.
      * Add API keys here at the API Key Table to start using this service. 
 8. Now run the background task in celery using the following commands, in different command prompts, in order:     
-    1.`celery -A youtube_api worker -l info ` 
-    2. ` celery -A youtube_api beat -l info `
+    - `celery -A youtube_api worker -l info ` 
+    - ` celery -A youtube_api beat -l info `
         
-9. Run the server using the command `python python manage.py runserver`
+9. Run the server using the command `python manage.py runserver`
         
 ### Testing the API:
 1. After running celery workers and beat scheduler, run the server. 
 2. For Testing the API, Postman was used: 
   * `GET` Request:
   Open a new request and enter the url `127.0.0:8000/videos/` with request option set as __GET__ as shown in the image below.
+  <img src =https://github.com/AdityaKhandelwal10/youtube-api/blob/main/assets/ss5.png width="75%"> <figcaption>GET Request in Postman</figcaption>
+  
   * `POST` Request:
   Open a new request and enter the url `127.0.0:8000/videos/` with request option set as __POST__ as shown in the image below.
   The body option below sends a query to the API. 
-  In the body section, select form-data and enter the query you want to search the database for. As shown in the images below. 
+  In the body section, select form-data and enter the query you want to search the database for. As shown in the images below.
+  <img src =https://github.com/AdityaKhandelwal10/youtube-api/blob/main/assets/ss6.png width="75%"> <figcaption></figcaption>
   
+  <img src =https://github.com/AdityaKhandelwal10/youtube-api/blob/main/assets/ss7.png width="75%"> <figcaption>POST Request in Postman</figcaption>
+  
+ 3. For a paginated response please add `?page=<no>` to the url like `127.0.0:8000/videos/?page=5`
+ 
 ## Limitations:
 1. API keys needs to be added manually.
 2. Optimised query search structure not supported
